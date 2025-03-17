@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/TextRenderComponent.h"
 #include "GameFramework/Actor.h"
+#include <tuple>
 #include "LabyMonCul.generated.h"
 
 //Struct
@@ -12,33 +13,27 @@ USTRUCT(BlueprintType)
 struct FSLabyrinthCell
 {
 	GENERATED_BODY()
-	// Index of the cell
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Index = 0;
 
-	// Ring number of the cell
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Ring = 0;
-
-	// Sector number of the cell
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Sector = 0;
-
-	// Location of the cell in 3D space
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Location = FVector(0,0,0);
-
-	// Neighbors of the cell (indices of neighboring cells)
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<int32> Neighbors = TArray<int32>();
-
-	// Whether this cell is the current cell in the pathfinding process
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCurrent = false;
-
-	// Whether this cell has been visited during the pathfinding process
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bVisited = false;
+	
 };
 
 UENUM(BlueprintType)
@@ -87,6 +82,23 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	int32 GetCellIndex(int32 Ring, int32 Sector);
+
+	UFUNCTION(BlueprintCallable)
+	void GenerateGrid();
+
+	UFUNCTION(BlueprintPure)
+	FVector CalculateCellLocation(int32 Ring, int32 Sector);
+
+	static FVector ReturnPolarToCartesian(float Radius, float Angle)
+	{
+		float ValueX = Radius * FMath::Cos(FMath::DegreesToRadians(Angle));
+		float ValueY = Radius * FMath::Sin(FMath::DegreesToRadians(Angle));
+		float ValueZ = 0.0f;
+		return FVector(ValueX, ValueY, ValueZ);
+	}
+	
+	UFUNCTION(BlueprintCallable)
+	void GenerateGeometry();
 	
 	//Components
 	UPROPERTY(VisibleAnywhere)
@@ -136,11 +148,11 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	FSLabyrinthCell NextPathCell;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(EditAnywhere)
 	bool RecursiveBacktrackingFinished = false;
 
-	UPROPERTY(VisibleAnywhere)
-	bool DebugIndex = false;
+	UPROPERTY(EditAnywhere)
+	bool DebugIndex = true;
 
 	UPROPERTY(VisibleAnywhere)
 	int32 LongestPath = 0;
