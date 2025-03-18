@@ -93,16 +93,13 @@ void ALabyMonCul::CalculateCellNeighbors(FSLabyrinthCell& Cell)
 	float LCurrentSubdivision = 0;
 	float LLeftSector = 0;
 	float LRightSector = 0;
-	FSLabyrinthCell NewCell = Cell;
-	NewCell.Neighbors.Empty();
-	Cell = NewCell;
-	if(NewCell.Index == 0 and NewCell.Ring == 0 and NewCell.Sector == 0)
+	Cell.Neighbors.Empty();
+	
+	if(Cell.Index == 0 and Cell.Ring == 0 and Cell.Sector == 0)
 	{
 		for(int32 i = 0; i < GetRingSubDivision(1)-1; i++)
 		{
-			NewCell = Cell;
-			NewCell.Neighbors.Add(i+1);
-			Cell = NewCell;
+			Cell.Neighbors.Add(i+1);
 		}
 	}
 	else
@@ -112,30 +109,23 @@ void ALabyMonCul::CalculateCellNeighbors(FSLabyrinthCell& Cell)
 		LCurrentSubdivision = GetRingSubDivision(LRing);
 		LLeftSector = FMath::Modulo((LSector - 1 + LCurrentSubdivision),LCurrentSubdivision);
 		LRightSector = FMath::Modulo((LSector + 1),LCurrentSubdivision);
-		NewCell.Neighbors.Add(GetCellIndex(LRing, LLeftSector));
-		NewCell.Neighbors.Add(GetCellIndex(LRing, LRightSector));
-		Cell = NewCell;
+		Cell.Neighbors.Add(GetCellIndex(LRing, LLeftSector));
+		Cell.Neighbors.Add(GetCellIndex(LRing, LRightSector));
 	}
 	if(LRing == 1)
 	{
-		NewCell = Cell;
-		NewCell.Neighbors.Add(0);
-		Cell = NewCell;
+		Cell.Neighbors.Add(0);
 	}
 	if(LRing > 1)
 	{
 		LCurrentSubdivision = GetRingSubDivision(LRing);
 		if(LCurrentSubdivision > GetRingSubDivision(LRing - 1))
 		{
-			NewCell = Cell;
-			NewCell.Neighbors.Add(GetCellIndex(LRing - 1, static_cast<int32>(static_cast<float>(LSector) / 2)));
-			Cell = NewCell;
+			Cell.Neighbors.Add(GetCellIndex(LRing - 1, static_cast<int32>(static_cast<float>(LSector) / 2)));
 		}
 		else
 		{
-			NewCell = Cell;
-			NewCell.Neighbors.Add(GetCellIndex(LRing - 1, LSector));
-			Cell = NewCell;
+			Cell.Neighbors.Add(GetCellIndex(LRing - 1, LSector));
 		}
 	}
 	if(LRing < MaxRings - 1)
@@ -143,24 +133,19 @@ void ALabyMonCul::CalculateCellNeighbors(FSLabyrinthCell& Cell)
 		LCurrentSubdivision = GetRingSubDivision(LRing);
 		if(LCurrentSubdivision < GetRingSubDivision(LRing + 1))
 		{
-			NewCell = Cell;
-			NewCell.Neighbors.Add(GetCellIndex(LRing + 1, LSector * 2));
-			NewCell.Neighbors.Add(GetCellIndex(LRing + 1, LSector * 2 + 1));
-			Cell = NewCell;
+			Cell.Neighbors.Add(GetCellIndex(LRing + 1, LSector * 2));
+			Cell.Neighbors.Add(GetCellIndex(LRing + 1, LSector * 2 + 1));
 		}
 		else
 		{
-			NewCell = Cell;
-			NewCell.Neighbors.Add(GetCellIndex(LRing + 1, LSector));
-			Cell = NewCell;
+			Cell.Neighbors.Add(GetCellIndex(LRing + 1, LSector));
 		}
 	}
 }
 
 int32 ALabyMonCul::GetRingSubDivision(int32 Ring) const
 {
-	float FRing = static_cast<float>(Ring);
-	FRing = FMath::Log2(FRing);
+	float FRing = FMath::Log2(static_cast<float>(Ring));
 	int32 IRing = FMath::Floor(FRing);
 	IRing = IRing + SubdivisionFactor;
 	FRing = static_cast<float>(IRing);
@@ -210,14 +195,14 @@ void ALabyMonCul::GenerateGrid()
 			NewCell.Sector = LSector;
 			NewCell.Location = CalculateCellLocation(LRing, LSector); 
 			Cells.Add(NewCell);
-			AddDebugTextRenderer(FVector(CalculateCellLocation(LRing,LSector)), FString::FromInt(LCellIndex));
+			AddDebugTextRenderer(FVector(CalculateCellLocation(LRing,LSector)), FString::FromInt(LCellIndex));	
 			LCellIndex++;
 		}
 	}
 	int32 Index = 0;
 	for (FSLabyrinthCell& Cell : Cells)
 	{
-		CalculateCellNeighbors(Cells[Index]);
+		CalculateCellNeighbors(Cell);
 		Index++;
 	}
 }
