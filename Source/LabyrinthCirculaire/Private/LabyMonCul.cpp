@@ -75,7 +75,7 @@ void ALabyMonCul::AddDebugTextRenderer(FVector TextLoc, FString TextMessage)
 		UTextRenderComponent* NewTextRenderer = NewObject<UTextRenderComponent>(this);
 		NewTextRenderer->RegisterComponent();
 		NewTextRenderer->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-		NewTextRenderer->SetRelativeLocation(TextLoc);//+ GetActorLocation()
+		NewTextRenderer->SetRelativeLocation(TextLoc); //+ GetActorLocation()
 		NewTextRenderer->SetRelativeRotation(FRotator(90, 0, 0));
 		NewTextRenderer->SetText(FText::FromString(TextMessage));
 		NewTextRenderer->SetHorizontalAlignment(EHTA_Center);
@@ -212,14 +212,13 @@ FVector ALabyMonCul::CalculateCellLocation(int32 Ring, int32 Sector)
 	float MiddleRadius = 0.0f;
 	float FRing = static_cast<float>(Ring);
 	float FSector = static_cast<float>(Sector);
-	FVector ReturnLocation;
+	FVector ReturnLocation = FVector(0.0f,0.0f,0.0f);
 	if(Ring == 0)
 	{
-		return FVector(0,0,0);
+		return ReturnLocation;
 	}
-	else
 	{
-		MiddleRadius = (FRing - 1 * RingSpacing) + BaseRadius + (RingSpacing * 0.5f);
+		MiddleRadius = ((FRing - 1) * RingSpacing) + BaseRadius + (RingSpacing * 0.5f);
 		ReturnLocation = ReturnPolarToCartesian(MiddleRadius, (FSector + 0.5f) * (360.f / static_cast<float>(GetRingSubDivision(Ring))));
 	}
 	return ReturnLocation;
