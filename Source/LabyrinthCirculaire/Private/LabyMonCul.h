@@ -36,6 +36,17 @@ struct FSLabyrinthCell
 	
 };
 
+USTRUCT(BlueprintType)
+struct FNeighborResult
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSLabyrinthCell Cell;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bVisited;
+};
+
 UENUM(BlueprintType)
 enum class EPathStartType : uint8
 {
@@ -104,6 +115,9 @@ public:
 	void SetLabyrinthEntrance(EPathStartType Type);
 
 	UFUNCTION(BlueprintCallable)
+	void SetLabyrinthExit(EPathEndType Type);
+
+	UFUNCTION(BlueprintCallable)
 	int32 GetRandomPerimeterCell();
 
 	UFUNCTION(BlueprintCallable)
@@ -111,6 +125,27 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FHitResult SingleLineTrace(FVector Start, FVector End);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentCell();
+
+	UFUNCTION(BlueprintCallable)
+	FNeighborResult GetPotentialNextNeighbor(FSLabyrinthCell Cell);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdatePathLocalisation(FSLabyrinthCell Cell);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveWall(FSLabyrinthCell Cell1, FSLabyrinthCell Cell2);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateCurrentOrVisitedState(int32 CellIndex, bool bCurrent, bool bVisited);
+
+	UFUNCTION(BlueprintCallable)
+	void FoundLongestPathAtRing(int32 Ring);
+
+	UFUNCTION(BlueprintCallable)
+	void IDK();
 	
 	//Components
 	UPROPERTY(VisibleAnywhere)
@@ -204,4 +239,6 @@ public:
 	int32 LSubdivision = 0;
 	TArray<int32> PossibleIndex;
 	int32 PerimeterCellChosen;
+	int32 CurrentCellIndex;
+	TArray<FSLabyrinthCell> PotentialNeighbors;
 };

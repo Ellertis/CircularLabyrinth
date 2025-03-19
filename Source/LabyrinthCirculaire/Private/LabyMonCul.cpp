@@ -13,6 +13,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
 #include "Math/TransformCalculus3D.h"
 
 // Sets default values
@@ -36,9 +37,7 @@ ALabyMonCul::ALabyMonCul()
 	
 	CircularWall_HISM =	CreateDefaultSubobject<UInstancedStaticMeshComponent>("CircularWall_HISM");
 	CircularWall_HISM->SetupAttachment(DefaultSceneRoot);
-
-	//Variables
-	FSLabyrinthCell Cell;
+	
 }
 
 // Called when the game starts or when spawned
@@ -55,6 +54,42 @@ void ALabyMonCul::OnConstruction(const FTransform& Transform)
 	GenerateGrid();
 	GenerateGeometry();
 	SetLabyrinthEntrance(StartPath);
+	SetLabyrinthExit(EndPath);
+	CurrentPathCell = Cells[GetCurrentCell()];
+	IDK();
+	/*FNeighborResult PotentialNeighbors  = GetPotentialNextNeighbor(CurrentPathCell);
+	if (PotentialNeighbors.bVisitided())
+	{
+		NextPathCell = PotentialNeighbors.Cell;
+		UpdatePathLocalisation(NextPathCell);
+		RemoveWall(CurrentPathCell,NextPathCell);
+		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+		UpdateCurrentOrVisitedState(NextPathCell.Index, true, true);
+		PathStackCells.Add(Cells[CurrentPathCell.Index]);
+		switch(EndPath)
+		{
+			case EPathEndType::Pt_Center:
+				FoundLongestPathAtRing(1);
+				break;
+			case EPathEndType::Pt_Farest:
+				FoundLongestPathAtRing(MaxRings); //maybe -1
+		}
+	}
+	else
+	{
+		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+		UpdatePathLocalisation(CurrentPathCell);
+		if(bool InversedBool = !PathStackCells.IsEmpty())
+		{
+			CurrentPathCell = PathStackCells.Last();
+			UpdateCurrentOrVisitedState(CurrentPathCell.Index, true, true);
+			UpdateCurrentOrVisitedState(NextPathCell.Index, false, true);
+			PathStackCells.RemoveAt(PathStackCells.Last().Index); // maybe +-1
+			GetPotentialNextNeighbor(CurrentPathCell);
+		}
+	}
+	*/
+	
 }
 
 // Called every frame
@@ -181,7 +216,7 @@ void ALabyMonCul::GenerateGrid()
 	Cells.Add(FSLabyrinthCell());
 	LCellIndex++;
 	AddDebugTextRenderer(FVector(0,0,0), FString("0"));
-	for(int32 i = 1; i < MaxRings - 1; i++)
+	for(int32 i = 1; i < MaxRings; i++)
 	{
 		LRing = i;
 		LCurrentSubdivision = GetRingSubDivision(i);
@@ -228,7 +263,7 @@ void ALabyMonCul::GenerateGeometry()
 	CircularWall_HISM->ClearInstances();
 	MaxSubdivisions = GetRingSubDivision(MaxRings);
 	BaseAngleStep = 360.0f / static_cast<float>(MaxSubdivisions);
-	for(int32 i = 0; i < MaxRings - 1; i++)
+	for(int32 i = 0; i < MaxRings; i++)
 	{
 		LRing = i;
 		LCurrentSubdivisions = GetRingSubDivision(LRing + 1);
@@ -252,7 +287,7 @@ void ALabyMonCul::GenerateGeometry()
 			PillarInstanceTransform.SetScale3D(UE::Math::TVector<double>(FVector(0.2f,0.2f,1.5f)));
 			Pillars_HISM->AddInstance(FTransform(PillarInstanceTransform));
 		}
-		if(LRing < MaxRings - 2)
+		if(LRing < MaxRings - 1)
 		{
 			LNextRadius = LRadius + RingSpacing;
 			for(int32 j = 0; j < LCurrentSubdivisions; j++)
@@ -276,24 +311,31 @@ void ALabyMonCul::GenerateGeometry()
 
 void ALabyMonCul::SetLabyrinthEntrance(EPathStartType Type)
 {
-	FSLabyrinthCell Cell;
 	switch(Type)
 	{
 		case EPathStartType::Pt_Center:
-			Cell = Cells[0];
-			Cell.bCurrent = true;
-			Cell.bVisited = true;
+			Cells[0].bCurrent = true;
+			Cells[0].bVisited = true;
 			break;
 		case EPathStartType::Pt_Perimeter:
 			PerimeterCellChosen = GetRandomPerimeterCell();
-			Cell = Cells[PerimeterCellChosen];
-			Cell.bCurrent = true;
-			Cell.bVisited = true;
-			OpenPerimeterCell(Cell);
+			Cells[PerimeterCellChosen].bCurrent = true;
+			Cells[PerimeterCellChosen].bVisited = true;
+			OpenPerimeterCell(Cells[PerimeterCellChosen]);
 			break;
-		
 	}
 
+}
+
+void ALabyMonCul::SetLabyrinthExit(EPathEndType Type)
+{
+	switch(Type)
+	{
+		case EPathEndType::Pt_Center:
+			Cells[0].bCurrent = true;
+			Cells[0].bVisited = true;
+			break;
+	}
 }
 
 int32 ALabyMonCul::GetRandomPerimeterCell()
@@ -305,7 +347,7 @@ int32 ALabyMonCul::GetRandomPerimeterCell()
 			PossibleIndex.Add(Cell.Index);
 		}
 	}
-	int32 RandomInt = FMath::RandRange(0, PossibleIndex.Num());
+	int32 RandomInt = FMath::RandRange(0, PossibleIndex.Num() - 1);
 	PerimeterCellChosen = PossibleIndex[RandomInt];
 	return PerimeterCellChosen;
 }
@@ -326,12 +368,131 @@ FHitResult ALabyMonCul::SingleLineTrace(FVector Start, FVector End)
 	bool bHit = false;
 	TArray<AActor*> ActorsToIgnore;
 	FCollisionQueryParams TraceParams;
-	UKismetSystemLibrary::LineTraceSingle(World,Start, End,TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::ForDuration, OutHit, false);
-	//World->LineTraceSingleByChannel(OutHit,Start, End, ECC_Visibility, TraceParams);
+	TraceParams.bTraceComplex = true;
+	World->LineTraceSingleByChannel(OutHit,Start, End, ECC_Visibility, TraceParams);
 	DrawDebugLine(World,Start,End,FColor::Red, false, 10.0f, 0, 2.0f);
 	return OutHit;
 }
 
+int32 ALabyMonCul::GetCurrentCell()
+{
+	for (FSLabyrinthCell& Cell : Cells)
+	{
+		if(Cell.bCurrent == true)
+		{
+			CurrentCellIndex = Cell.Index;
+			break;
+		}
+	}
+	return CurrentCellIndex;
+}
+
+FNeighborResult ALabyMonCul::GetPotentialNextNeighbor(FSLabyrinthCell Cell)
+{
+	TArray<int32> SelectedCellNeighbors = Cells[Cell.Index].Neighbors;
+	for(int32 NeighborIndex : SelectedCellNeighbors)
+	{
+		if(!Cells[NeighborIndex].bVisited)
+		{
+			FSLabyrinthCell ToAdd = Cells[NeighborIndex];
+			PotentialNeighbors.Add(ToAdd);//= Cell
+		}
+	}
+	
+/*
+	for (int32 NeighborIndex : SelectedCellNeighbors)
+	{
+		if (NeighborIndex >= 0 && NeighborIndex < Cells.Num())
+		{
+			if (!Cells[NeighborIndex].bVisited)
+			{
+				PotentialNeighbors.Add(Cells[NeighborIndex]);
+			}
+		}
+	}
+	*/
+	int32 RandomInt = FMath::RandRange(0, PotentialNeighbors.Num() - 1);
+	FSLabyrinthCell ChosenNeighbor = PotentialNeighbors[RandomInt];
+	bool ResultBool = PotentialNeighbors.IsEmpty();
+	FNeighborResult Result = {ChosenNeighbor, !ResultBool};
+	return Result;
+}
+
+void ALabyMonCul::UpdatePathLocalisation(FSLabyrinthCell Cell)
+{
+	Path_HISM->ClearInstances();
+	FTransform UpdatePathTransform;
+	UpdatePathTransform.SetLocation(Cell.Location);
+	UpdatePathTransform.SetRotation(UE::Math::TQuat<double>(FVector(0.0f, 0.0f, 0.0f), 0.0f));
+	UpdatePathTransform.SetScale3D(FVector(1.0f));
+	Path_HISM->AddInstance(UpdatePathTransform);
+}
+
+void ALabyMonCul::RemoveWall(FSLabyrinthCell Cell1, FSLabyrinthCell Cell2)
+{
+	FVector Start = Cell1.Location;
+	FVector End = Cell2.Location;
+	UWorld* const World = GetWorld();
+	FHitResult OutHit;
+	TArray<AActor*> ActorsToIgnore;
+	FCollisionQueryParams TraceParams;
+	TraceParams.bTraceComplex = true;
+	World->LineTraceSingleByChannel(OutHit,Start, End, ECC_Visibility, TraceParams);
+	DrawDebugLine(World,Start,End,FColor::Red, false, 10.0f, 0, 2.0f);
+	CircularWall_HISM->RemoveInstance(OutHit.Item);
+}
+
+void ALabyMonCul::UpdateCurrentOrVisitedState(int32 CellIndex, bool bCurrent, bool bVisited)
+{
+	Cells[CellIndex].bCurrent = bCurrent;
+	Cells[CellIndex].bVisited = bVisited;
+}
+
+void ALabyMonCul::FoundLongestPathAtRing(int32 Ring)
+{
+	if(PathStackCells.Max() - 1 > LongestPath && NextPathCell.Ring == Ring)
+	{
+		LongestPath = PathStackCells.Last().Index; // maybe +-1
+		LongestPathCell = Cells[NextPathCell.Index];
+	}
+}
+
+void ALabyMonCul::IDK()
+{
+	FNeighborResult LPotentialNeighbors = GetPotentialNextNeighbor(CurrentPathCell);
+	if (LPotentialNeighbors.bVisited)
+	{
+		NextPathCell = LPotentialNeighbors.Cell;
+		UpdatePathLocalisation(NextPathCell);
+		RemoveWall(CurrentPathCell,NextPathCell);
+		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+		UpdateCurrentOrVisitedState(NextPathCell.Index, true, true);
+		PathStackCells.Add(Cells[CurrentPathCell.Index]);
+		switch(EndPath)
+		{
+			case EPathEndType::Pt_Center:
+				FoundLongestPathAtRing(1);
+				break;
+			case EPathEndType::Pt_Farest:
+				FoundLongestPathAtRing(MaxRings); //maybe -1
+				break;
+		}
+	}
+	else
+	{
+		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+		UpdatePathLocalisation(CurrentPathCell);
+		if(!PathStackCells.IsEmpty())
+		{
+			CurrentPathCell = PathStackCells.Last();
+			UpdateCurrentOrVisitedState(CurrentPathCell.Index, true, true);
+			UpdateCurrentOrVisitedState(NextPathCell.Index, false, true);
+			PathStackCells.RemoveAt(PathStackCells.Last().Index); // maybe +-1
+			IDK();
+		}
+		RecursiveBacktrackingFinished = true;
+	}
+}
 
 
 
