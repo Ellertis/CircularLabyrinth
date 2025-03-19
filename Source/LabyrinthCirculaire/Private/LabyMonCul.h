@@ -108,6 +108,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void OpenPerimeterCell(FSLabyrinthCell& Cell);
+
+	UFUNCTION(BlueprintCallable)
+	FHitResult SingleLineTrace(FVector Start, FVector End);
 	
 	//Components
 	UPROPERTY(VisibleAnywhere)

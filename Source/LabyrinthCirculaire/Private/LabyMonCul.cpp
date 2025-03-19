@@ -7,9 +7,12 @@
 
 #include "IPropertyTable.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Quaternion.h"
 #include "CompGeom/FitOrientedBox2.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Math/TransformCalculus3D.h"
 
 // Sets default values
@@ -51,6 +54,7 @@ void ALabyMonCul::OnConstruction(const FTransform& Transform)
 	ClearProperties();
 	GenerateGrid();
 	GenerateGeometry();
+	SetLabyrinthEntrance(StartPath);
 }
 
 // Called every frame
@@ -282,8 +286,10 @@ void ALabyMonCul::SetLabyrinthEntrance(EPathStartType Type)
 			break;
 		case EPathStartType::Pt_Perimeter:
 			PerimeterCellChosen = GetRandomPerimeterCell();
+			Cell = Cells[PerimeterCellChosen];
 			Cell.bCurrent = true;
 			Cell.bVisited = true;
+			OpenPerimeterCell(Cell);
 			break;
 		
 	}
@@ -294,19 +300,36 @@ int32 ALabyMonCul::GetRandomPerimeterCell()
 {
 	for (FSLabyrinthCell& Cell : Cells)
 	{
-		if(Cell.Ring == MaxRings - 1) //maybe -2
+		if(Cell.Ring == MaxRings - 1)
 		{
-			PossibleIndex.Add(Cell.Index);	
+			PossibleIndex.Add(Cell.Index);
 		}
 	}
-	int32 RandomInt = Seed.RandRange(0, Cells.Num() - 1);
+	int32 RandomInt = FMath::RandRange(0, PossibleIndex.Num());
 	PerimeterCellChosen = PossibleIndex[RandomInt];
 	return PerimeterCellChosen;
 }
 
 void ALabyMonCul::OpenPerimeterCell(FSLabyrinthCell& Cell)
 {
-	//ActorLineTraceSingle()
+	FHitResult HitResult;
+	FVector Start = Cell.Location;
+	FVector End = (Cell.Location.GetSafeNormal()) * RingSpacing + Start; 
+	HitResult = SingleLineTrace(Start, End);
+	CircularWall_HISM->RemoveInstance(HitResult.Item);
+}
+
+FHitResult ALabyMonCul::SingleLineTrace(FVector Start, FVector End)
+{
+	UWorld* const World = GetWorld();
+	FHitResult OutHit;
+	bool bHit = false;
+	TArray<AActor*> ActorsToIgnore;
+	FCollisionQueryParams TraceParams;
+	UKismetSystemLibrary::LineTraceSingle(World,Start, End,TraceTypeQuery1, false, ActorsToIgnore, EDrawDebugTrace::ForDuration, OutHit, false);
+	//World->LineTraceSingleByChannel(OutHit,Start, End, ECC_Visibility, TraceParams);
+	DrawDebugLine(World,Start,End,FColor::Red, false, 10.0f, 0, 2.0f);
+	return OutHit;
 }
 
 
