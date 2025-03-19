@@ -99,6 +99,15 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void GenerateGeometry();
+
+	UFUNCTION(BlueprintCallable)
+	void SetLabyrinthEntrance(EPathStartType Type);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetRandomPerimeterCell();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenPerimeterCell(FSLabyrinthCell& Cell);
 	
 	//Components
 	UPROPERTY(VisibleAnywhere)
@@ -171,4 +180,25 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float AnimationDelay = 0;
+
+	int32 MaxSubdivisions = 0;
+	float BaseAngleStep = 0.0f;
+	int32 LRing = 0;
+	int32 LCurrentSubdivisions = 0;
+	int32 LSubdivisionRatio = 0;
+	float LRadius = 0.0f;
+	float LEffectiveAngleStep = 0.0f;
+	int32 LSector = 0;
+	float LCircularWallAngle = 0.0f;
+	float LPillarAngle = 0.0f;
+	float LNextRadius = 0.0f;
+	int32 LRadialWallSector = 0;
+	float LCurrentAngle = 0.0f;
+	float LNextAngle = 0.0f;
+	int32 LCurrentSubdivision = 0;
+	int32 LLeftSector = 0;
+	int32 LRightSector = 0;
+	int32 LSubdivision = 0;
+	TArray<int32> PossibleIndex;
+	int32 PerimeterCellChosen;
 };
