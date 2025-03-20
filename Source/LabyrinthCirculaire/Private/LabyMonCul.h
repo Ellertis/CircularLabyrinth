@@ -145,7 +145,10 @@ public:
 	void FoundLongestPathAtRing(int32 Ring);
 
 	UFUNCTION(BlueprintCallable)
-	void IDK();
+	void FF();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenCenterCell(FSLabyrinthCell Cell);
 	
 	//Components
 	UPROPERTY(VisibleAnywhere)

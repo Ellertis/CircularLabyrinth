@@ -55,41 +55,7 @@ void ALabyMonCul::OnConstruction(const FTransform& Transform)
 	GenerateGeometry();
 	SetLabyrinthEntrance(StartPath);
 	SetLabyrinthExit(EndPath);
-	CurrentPathCell = Cells[GetCurrentCell()];
-	IDK();
-	/*FNeighborResult PotentialNeighbors  = GetPotentialNextNeighbor(CurrentPathCell);
-	if (PotentialNeighbors.bVisitided())
-	{
-		NextPathCell = PotentialNeighbors.Cell;
-		UpdatePathLocalisation(NextPathCell);
-		RemoveWall(CurrentPathCell,NextPathCell);
-		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
-		UpdateCurrentOrVisitedState(NextPathCell.Index, true, true);
-		PathStackCells.Add(Cells[CurrentPathCell.Index]);
-		switch(EndPath)
-		{
-			case EPathEndType::Pt_Center:
-				FoundLongestPathAtRing(1);
-				break;
-			case EPathEndType::Pt_Farest:
-				FoundLongestPathAtRing(MaxRings); //maybe -1
-		}
-	}
-	else
-	{
-		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
-		UpdatePathLocalisation(CurrentPathCell);
-		if(bool InversedBool = !PathStackCells.IsEmpty())
-		{
-			CurrentPathCell = PathStackCells.Last();
-			UpdateCurrentOrVisitedState(CurrentPathCell.Index, true, true);
-			UpdateCurrentOrVisitedState(NextPathCell.Index, false, true);
-			PathStackCells.RemoveAt(PathStackCells.Last().Index); // maybe +-1
-			GetPotentialNextNeighbor(CurrentPathCell);
-		}
-	}
-	*/
-	
+	//FF();
 }
 
 // Called every frame
@@ -457,41 +423,67 @@ void ALabyMonCul::FoundLongestPathAtRing(int32 Ring)
 	}
 }
 
-void ALabyMonCul::IDK()
+void ALabyMonCul::FF()
 {
-	FNeighborResult LPotentialNeighbors = GetPotentialNextNeighbor(CurrentPathCell);
-	if (LPotentialNeighbors.bVisited)
+	while (RecursiveBacktrackingFinished != true)
 	{
-		NextPathCell = LPotentialNeighbors.Cell;
-		UpdatePathLocalisation(NextPathCell);
-		RemoveWall(CurrentPathCell,NextPathCell);
-		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
-		UpdateCurrentOrVisitedState(NextPathCell.Index, true, true);
-		PathStackCells.Add(Cells[CurrentPathCell.Index]);
-		switch(EndPath)
+		CurrentPathCell = Cells[GetCurrentCell()];
+		FNeighborResult LPotentialNeighbors = GetPotentialNextNeighbor(CurrentPathCell);
+		if (LPotentialNeighbors.bVisited)
 		{
+			NextPathCell = LPotentialNeighbors.Cell;
+			UpdatePathLocalisation(NextPathCell);
+			RemoveWall(CurrentPathCell,NextPathCell);
+			UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+			UpdateCurrentOrVisitedState(NextPathCell.Index, true, true);
+			PathStackCells.Add(Cells[CurrentPathCell.Index]);
+			switch(EndPath)
+			{
 			case EPathEndType::Pt_Center:
 				FoundLongestPathAtRing(1);
 				break;
 			case EPathEndType::Pt_Farest:
 				FoundLongestPathAtRing(MaxRings); //maybe -1
 				break;
+			}
 		}
-	}
-	else
-	{
-		UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
-		UpdatePathLocalisation(CurrentPathCell);
-		if(!PathStackCells.IsEmpty())
+		else
 		{
-			CurrentPathCell = PathStackCells.Last();
-			UpdateCurrentOrVisitedState(CurrentPathCell.Index, true, true);
-			UpdateCurrentOrVisitedState(NextPathCell.Index, false, true);
-			PathStackCells.RemoveAt(PathStackCells.Last().Index); // maybe +-1
-			IDK();
+			UpdateCurrentOrVisitedState(CurrentPathCell.Index, false, true);
+			UpdatePathLocalisation(CurrentPathCell);
+			if(!PathStackCells.IsEmpty())
+			{
+				CurrentPathCell = PathStackCells.Last();
+				UpdateCurrentOrVisitedState(CurrentPathCell.Index, true, true);
+				UpdateCurrentOrVisitedState(NextPathCell.Index, false, true);
+				PathStackCells.RemoveAt(PathStackCells.Last().Index); // maybe +-1
+				FF();
+			}
+			RecursiveBacktrackingFinished = true;
 		}
-		RecursiveBacktrackingFinished = true;
 	}
+	switch(EndPath)
+	{
+		case EPathEndType::Pt_Center:
+			OpenCenterCell(LongestPathCell);
+			break;
+		case EPathEndType::Pt_Farest:
+			OpenCenterCell(LongestPathCell);
+			break;
+		case EPathEndType::Pt_RandomPerimeter:
+			OpenCenterCell(Cells[GetCurrentCell()]);
+			break;
+	}
+	
+}
+
+void ALabyMonCul::OpenCenterCell(FSLabyrinthCell Cell)
+{
+	FHitResult HitResult;
+	FVector Start = Cell.Location;
+	FVector End = (Cell.Location.GetSafeNormal()) * RingSpacing + Start; 
+	HitResult = SingleLineTrace(Start, End);
+	CircularWall_HISM->RemoveInstance(HitResult.Item);
 }
 
 
